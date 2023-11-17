@@ -9,15 +9,15 @@ func main() {
 	// Initialize database. Exits if error occurs.
 	db, _ := database.InitDataBase("", true)
 
-	entry := database.Translations{
-		CampID:  3,
-		Lang:    "jp",
-		From:    "meme",
-		Subject: "check this meme",
+	entry := database.SendStats{
+		Ts:         0,
+		CampaignID: 1,
+		Lang:       "en",
+		Email:      "kekus.com",
+		ExtID:      "2",
+		Success:    true,
+		ErrorMsg:   "",
 	}
-	// fmt.Println("Creating entry", entry)
-	// database.InsertOneTranslationsRow(db, &entry)
-
-	fmt.Println("Deleting entry", entry)
-	database.HardDeleteTranslationsRowByCondition(db, "camp_id", "3")
+	fmt.Println("Creating entry", entry)
+	database.InsertOneSendStatsRow(db, &entry)
 }
