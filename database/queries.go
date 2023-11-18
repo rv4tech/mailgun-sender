@@ -7,95 +7,80 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// Insert one row into Translations table.
-func InsertOneTranslationsRow(database *gorm.DB, data *Translations) int64 {
-	query := database.Create(&data)
-	CheckForQueryError(query)
-	return query.RowsAffected
-}
+// type query interface {
+// 	InsertOne()
+// 	DeleteOne()
+// 	HardDelete()
+// }
 
-// Insert many rows into Translations table.
-func InsertManyTranslationsRows(database *gorm.DB, data []*Translations) int64 {
-	query := database.Create(data)
+// Insert one row into Translations table.
+func (t *Translations) InsertOne(database *gorm.DB) int64 {
+	query := database.Create(&t)
 	CheckForQueryError(query)
 	return query.RowsAffected
 }
 
 // Delete one row from Translations table.
-func DeleteTranslationsRow(database *gorm.DB, data *Translations) int64 {
-	query := database.Delete(&data)
+func (t *Translations) DeleteOne(database *gorm.DB) int64 {
+	query := database.Delete(&t)
 	CheckForQueryError(query)
 	return query.RowsAffected
 }
 
 // Hard(!) delete of Translations table row by condition.
-func HardDeleteTranslationsRowByCondition(database *gorm.DB, field string, condition string) *gorm.DB {
+func (t *Translations) HardDelete(database *gorm.DB, field string, condition string) *gorm.DB {
 	query := database.
 		Unscoped().
 		Clauses(clause.Returning{}).
 		Where(fmt.Sprintf("%s = ?", field), condition).
-		Delete(&Campaigns{})
+		Delete(&t)
 	return query
 }
 
 // Insert one row into Campaigns table.
-func InsertOneCampaignsRow(database *gorm.DB, data *Campaigns) int64 {
-	query := database.Create(&data)
-	CheckForQueryError(query)
-	return query.RowsAffected
-}
-
-// Insert many rows into Campaigns table.
-func InsertManyCampaignsRows(database *gorm.DB, data []*Campaigns) int64 {
-	query := database.Create(data)
+func (c *Campaigns) InsertOne(database *gorm.DB) int64 {
+	query := database.Create(&c)
 	CheckForQueryError(query)
 	return query.RowsAffected
 }
 
 // Delete one row from Campaigns table.
-func DeleteCampaignsRow(database *gorm.DB, data *Campaigns) int64 {
-	query := database.Delete(&data)
+func (c *Campaigns) DeleteOne(database *gorm.DB) int64 {
+	query := database.Delete(&c)
 	CheckForQueryError(query)
 	return query.RowsAffected
 }
 
 // Hard(!) delete of Campaigns table row by condition.
-func HardDeleteCampaignsRowByCondition(database *gorm.DB, field string, condition string) *gorm.DB {
+func (c *Campaigns) HardDelete(database *gorm.DB, field string, condition string) *gorm.DB {
 	query := database.
 		Unscoped().
 		Clauses(clause.Returning{}).
 		Where(fmt.Sprintf("%s = ?", field), condition).
-		Delete(&Campaigns{})
+		Delete(&c)
 	return query
 }
 
 // Insert one row into SendStats table.
-func InsertOneSendStatsRow(database *gorm.DB, data *SendStats) int64 {
-	query := database.Create(&data)
-	CheckForQueryError(query)
-	return query.RowsAffected
-}
-
-// Insert many rows into SendStats table.
-func InsertManySendStatsRows(database *gorm.DB, data []*SendStats) int64 {
-	query := database.Create(data)
+func (s *SendStats) InsertOne(database *gorm.DB) int64 {
+	query := database.Create(&s)
 	CheckForQueryError(query)
 	return query.RowsAffected
 }
 
 // Delete one row from SendStats table.
-func DeleteSendStatsRow(database *gorm.DB, data *SendStats) int64 {
-	query := database.Delete(&data)
+func (s *SendStats) DeleteOne(database *gorm.DB) int64 {
+	query := database.Delete(&s)
 	CheckForQueryError(query)
 	return query.RowsAffected
 }
 
 // Hard(!) delete of SendStats table row by condition.
-func HardDeleteSendStatsRowByCondition(database *gorm.DB, field string, condition string) *gorm.DB {
+func (s *SendStats) HardDelete(database *gorm.DB, field string, condition string) *gorm.DB {
 	query := database.
 		Unscoped().
 		Clauses(clause.Returning{}).
 		Where(fmt.Sprintf("%s = ?", field), condition).
-		Delete(&SendStats{})
+		Delete(&s)
 	return query
 }
