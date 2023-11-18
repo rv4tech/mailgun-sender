@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"log"
 	"net/mail"
 
 	"gorm.io/gorm"
@@ -11,7 +12,7 @@ import (
 func (s *SendStats) BeforeCreate(tx *gorm.DB) (err error) {
 	_, err = mail.ParseAddress(s.Email)
 	if err != nil {
-		return RaiseGenericError(fmt.Sprintf("\nEmail is not valid.\nError: %s\nEmail: %s", err, s.Email))
+		log.Fatalf(fmt.Sprintf("\nEmail is not valid.\nError: %s\nEmail: %s", err, s.Email))
 	}
 	return
 }

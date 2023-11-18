@@ -1,8 +1,26 @@
 package database
 
 import (
+	"fmt"
+
 	"gorm.io/gorm"
 )
+
+type DBModel interface {
+	printModel()
+}
+
+func (c *Campaigns) printModel() {
+	fmt.Println(c)
+}
+
+func (c *Translations) printModel() {
+	fmt.Println(c)
+}
+
+func (c *SendStats) printModel() {
+	fmt.Println(c)
+}
 
 // Struct representation for Campaigns table. Gorm alias: campaigns.
 type Campaigns struct {
