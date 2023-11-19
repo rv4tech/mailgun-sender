@@ -1,61 +1,42 @@
 package main
 
 import (
-	"flag"
 	"fmt"
-	"log"
+	cmdarguments "rv4-request/cmd_arguments"
 	"rv4-request/database"
 	"rv4-request/io"
-
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
-type dataToSend struct {
+type fileData struct {
 	client      string
 	clientEmail string
 	language    string
 	externalID  string
 }
 
-func init() {
-	// ApplyFixtures()
-}
-
-func parseArguments() (*string, *string) {
-	var maillistPath, campaignName string
-	// Flag -ml to read from csv file with a given name. Default value is "maillist.csv"
-	flag.StringVar(&maillistPath, "ml", "", "Name of the file to read from. No default value.")
-
-	// Flag -camp to choose campaign with a given name. No default value.
-	flag.StringVar(&campaignName, "camp", "", "Name of the campaign. No default value.")
-	flag.Parse()
-
-	// Assuming we need both arguments to not be empty.
-	condition := campaignName != "" && maillistPath != ""
-	if condition {
-		data := io.ReadCsvFile(maillistPath)
-		fmt.Println(data)
-	} else {
-		// Stdout -h in case of error or wrong arguments.
-		flag.Usage()
-	}
-	return &maillistPath, &campaignName
+type sendData struct {
+	template string
+	language string
+	from     string
+	subject  string
+	to       string
 }
 
 func main() {
 	// Initialize database. Exits if error occurs.
-	db, err := gorm.Open(sqlite.Open("rv4.db"), &gorm.Config{})
-	if err != nil {
-		log.Fatalf("Could not connet to database %s\nError: %s", "rv4.db", err)
-	}
-	mailListFileName, campaignName := parseArguments()
+	db, _ := database.InitDataBase("")
 
+	// Get parsed arguments as strings.
+	mailListFileName, campaignName := cmdarguments.ParseArguments()
+	fmt.Printf("filename: %s, campaign name: %s\n", *mailListFileName, *campaignName)
+
+	// Read csv file.
 	data := io.ReadCsvFile(*mailListFileName)
 
-	var preparationData []dataToSend
+	// Encapsulate data from csv file into slice of structs.
+	var preparationData []fileData
 	for _, row := range data {
-		toSend := dataToSend{
+		toSend := fileData{
 			client:      row[0],
 			clientEmail: row[1],
 			language:    row[2],
@@ -64,7 +45,12 @@ func main() {
 		preparationData = append(preparationData, toSend)
 	}
 
-	var currentCampaign *database.Campaigns
-	currentCampaign = database.Campaigns.GetOne(db, "name", campaignName)
-	fmt.Printf("qe: %v+", &currentCampaign)
+	// Get db entity from passed campaign name.
+	campaign := database.GetCampaignByName(db, *campaignName)
+
+	// Get db entity of campaign related translations.
+	translations := database.GetTranslationsByCampaignID(db, int(campaign.ID))
+	for _, t := range translations {
+		fmt.Printf("\nID IS: %v\nLANG IS: %v", t.CampID, t.Lang)
+	}
 }
