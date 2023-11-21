@@ -6,6 +6,13 @@ import (
 	"os"
 )
 
+type FileData struct {
+	client      string
+	clientEmail string
+	language    string
+	externalID  string
+}
+
 // Reads file from passed filename and returns slice of slices without header.
 func ReadCsvFile(filename string) [][]string {
 	file, err := os.Open(filename)

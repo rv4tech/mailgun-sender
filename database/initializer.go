@@ -14,7 +14,7 @@ const defaultDatabaseName = "mailgun_sender.db"
 // Database initializer.
 // Takes name string as an argument.
 // Default value is mailgun_sender.db.
-func InitDataBase(databaseName string) (*gorm.DB, error) {
+func InitDataBase(databaseName string) *gorm.DB {
 	var database *gorm.DB
 	// In case empty string was passed, use default hardcoded value.
 	if databaseName == "" {
@@ -27,7 +27,7 @@ func InitDataBase(databaseName string) (*gorm.DB, error) {
 	// Applying schemas does not require any kind of checks.
 	ApplySchemas(database)
 	fmt.Printf("Successfully connected to database %s\n", databaseName)
-	return database, nil
+	return database
 }
 
 // Apply schemas from models.go file.
