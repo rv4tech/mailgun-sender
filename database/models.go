@@ -25,7 +25,7 @@ type Translation struct {
 type SendStat struct {
 	gorm.Model
 	Ts         int64 `gorm:"autoCreateTime"`
-	CampaignID int
+	CampaignID uint
 	Lang       string
 	Email      string
 	ExtID      string

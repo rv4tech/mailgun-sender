@@ -5,7 +5,7 @@ import (
 	"rv4-request/io"
 )
 
-func ParseArguments() (*string, *string) {
+func ParseArguments() (string, string) {
 	var maillistPath, campaignName string
 	// Flag -ml to read from csv file with a given name. Default value is "maillist.csv"
 	flag.StringVar(&maillistPath, "ml", "", "Name of the file to read from. No default value.")
@@ -24,5 +24,5 @@ func ParseArguments() (*string, *string) {
 		// Stdout -h in case of error or wrong arguments.
 		flag.Usage()
 	}
-	return &maillistPath, &campaignName
+	return maillistPath, campaignName
 }

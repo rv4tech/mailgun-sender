@@ -7,10 +7,10 @@ import (
 )
 
 type FileData struct {
-	client      string
-	clientEmail string
-	language    string
-	externalID  string
+	Client      string
+	ClientEmail string
+	Language    string
+	ExternalID  string
 }
 
 // Reads file from passed filename and returns slice of slices without header.
@@ -22,7 +22,7 @@ func ReadCsvFile(filename string) [][]string {
 	defer file.Close()
 
 	csvReader := csv.NewReader(file)
-	records, err := csvReader.ReadAll()
+	records, _ := csvReader.ReadAll()
 	fileLength := len(records)
 	switch fileLength {
 	case 0:
