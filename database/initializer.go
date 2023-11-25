@@ -26,7 +26,7 @@ func InitDataBase(databaseName string) *gorm.DB {
 	}
 	// Applying schemas does not require any kind of checks.
 	ApplySchemas(database)
-	fmt.Printf("Successfully connected to database %s\n", databaseName)
+	fmt.Printf("Successfully connected to database %s\n\n", databaseName)
 	return database
 }
 

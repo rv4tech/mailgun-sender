@@ -8,7 +8,6 @@ import (
 	"rv4-request/database"
 	"rv4-request/io"
 	"rv4-request/sender"
-	"strings"
 
 	"github.com/joho/godotenv"
 	"gorm.io/gorm"
@@ -30,62 +29,66 @@ func main() {
 	var fileName, campaignName string = cmdarguments.ParseArguments()
 
 	// Get initial database data based on passed cmd arguments.
-	campaign := database.GetCampaignByName(db, campaignName)
-	translations := database.GetTranslationsByCampaignID(db, campaign.ID)
-
-	// Get file data based on filename passed as cmd argument.
-	var rawData [][]string = io.ReadCsvFile(fileName)
-	var fileData []io.FileData
-
-	// Encapsulate data from csv file for accessability.
-	for _, row := range rawData {
-		fileData = append(fileData, io.FileData{
-			Client:      strings.Trim(row[0], " "),
-			ClientEmail: strings.Trim(row[1], " "),
-			Language:    strings.Trim(row[2], " "),
-			ExternalID:  strings.Trim(row[3], " "),
-		})
+	campaign, err := database.GetCampaignByName(db, campaignName)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	// Initialize slice that will containt data about message sent.
-	var batchSendStatData []*database.SendStat
-	for _, client := range fileData {
-		for _, translation := range translations {
-			if client.Language == translation.Lang {
-				var tags []string
-				tags = append(tags, campaign.MgTemplate)
-			}
+	var fileData [][]string = io.ReadCsvFile(fileName)
+	var clients []*Client = CreateClientsSlice(fileData)
 
-			if translation.Lang != "" {
-				tags = append(tags, translation.Lang)
-			} else {
-				tags = append(tags, campaign.DefaultLang)
-			}
-			paramInstance := sender.MailGunParams{
-				From:    translation.From,
-				Subject: translation.Subject,
-				Text:    "test",
-				Tags:    tags,
-				To:      clients,
-			}
-			responseMessage, responseID, responseError := sender.SendMailGunMessageV3(domain, apiKey, &paramInstance)
-			stat := &database.SendStat{
-				CampaignID: campaign.ID,
-				Lang:       translation.Lang,
-				ExtID:      "testID",
-				Email:      client,
-			}
-			if responseError != nil {
-				stat.ErrorMsg = fmt.Sprintf("%s", responseError)
-				stat.Success = false
-			} else {
-				stat.ErrorMsg = ""
-				stat.Success = true
-			}
-			batchSendStatData = append(batchSendStatData, stat)
-			fmt.Printf("Response message: %s\n", responseMessage)
-			fmt.Printf("Response id: %s\n\n", responseID)
+	// Initialize slice that will containt data about messages sent.
+	var batchSendStatData []*database.SendStat
+	for _, client := range clients {
+		// Get related translation.
+		translation, err := database.GetTranslationByCampaignIDAndLanguage(db, campaign.ID, client.Language)
+		if err != nil {
+			log.Fatal(err)
 		}
+		// Initialize empty slice with tags.
+		var tags []string
+		// Initialize empty string with lanuage.
+		var language string
+		// Add tag as per campaign table.
+		tags = append(tags, campaign.MgTemplate)
+		// We need to check if translations table related to the campaign contains lanuage string.
+		// If not, we substitute it with default language from campaigns table.
+		if translation.Lang == "" {
+			language = campaign.DefaultLang
+		} else {
+			language = client.Language
+		}
+		tags = append(tags, language)
+		// Instanciate parameters to fill mailgun request.
+		paramInstance := sender.MailGunParams{
+			From:    translation.From,
+			Subject: translation.Subject,
+			Text:    "test",
+			Tags:    tags,
+			To:      client.Email,
+		}
+		responseMessage, responseID, responseError := sender.SendMailGunMessageV3(domain, apiKey, &paramInstance)
+		// Prepare data to fill send stats table.
+		stat := &database.SendStat{
+			CampaignID: campaign.ID,
+			Lang:       language,
+			ExtID:      client.ExternalID,
+			Email:      client.Email,
+		}
+		if responseError != nil {
+			stat.ErrorMsg = fmt.Sprintf("%s", responseError)
+			stat.Success = false
+		} else {
+			stat.ErrorMsg = ""
+			stat.Success = true
+		}
+		batchSendStatData = append(batchSendStatData, stat)
+		// Prints for testing purposes.
+		fmt.Printf("Sending message to <%s %s>\n", client.Name, client.Email)
+		fmt.Println("MAILGUN RESPONSE")
+		fmt.Printf("Response message: %s\n", responseMessage)
+		fmt.Printf("Response id: %s\n", responseID)
+		fmt.Printf("Response error: %s\n\n", responseError)
 	}
 
 	// Create entries as batch.
