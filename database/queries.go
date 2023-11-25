@@ -1,26 +1,36 @@
 package database
 
 import (
+	"log"
+
 	"gorm.io/gorm"
 )
 
 // Get single row from Campaign table.
-func GetCampaignByName(db *gorm.DB, campaignName string) Campaign {
-	var campaign Campaign
-	db.Where("name = ?", campaignName).First(&campaign)
-	return campaign
+func GetCampaignByName(db *gorm.DB, campaignName string) (*Campaign, error) {
+	var campaign *Campaign
+	query := db.Where("name = ?", campaignName).First(&campaign)
+	if query.Error != nil {
+		log.Fatal(query.Error)
+	}
+	return campaign, query.Error
 }
 
-// Get related translations from Translation table.
-func GetTranslationsByCampaignID(db *gorm.DB, id uint) []Translation {
-	var translations []Translation
-	db.Where("camp_id = ?", id).Find(&translations)
-	return translations
+// Get related translation from Translation table.
+func GetTranslationByCampaignIDAndLanguage(db *gorm.DB, id uint, clientLanguage string) (*Translation, error) {
+	var translation *Translation
+	query := db.Where("camp_id = ?", id).Where("lang = ?", clientLanguage).Find(&translation)
+	if query.Error != nil {
+		log.Fatal(query.Error)
+	}
+	return translation, query.Error
 }
 
 // Batch creation of send stat entity.
-func CreateBatchSendStatRecord(db *gorm.DB, params []*SendStat) []SendStat {
-	var stats []SendStat
-	db.Create(&params)
-	return stats
+func CreateBatchSendStatRecord(db *gorm.DB, params []*SendStat) ([]*SendStat, error) {
+	query := db.Create(&params)
+	if query.Error != nil {
+		log.Fatal(query.Error)
+	}
+	return params
 }

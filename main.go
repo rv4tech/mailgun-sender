@@ -47,18 +47,15 @@ func main() {
 		})
 	}
 
-	// Create slice of clients emails.
-	var clients []string
-	for _, client := range fileData {
-		clients = append(clients, client.ClientEmail)
-	}
-
 	// Initialize slice that will containt data about message sent.
 	var batchSendStatData []*database.SendStat
-	for _, client := range clients {
+	for _, client := range fileData {
 		for _, translation := range translations {
-			var tags []string
-			tags = append(tags, campaign.MgTemplate)
+			if client.Language == translation.Lang {
+				var tags []string
+				tags = append(tags, campaign.MgTemplate)
+			}
+
 			if translation.Lang != "" {
 				tags = append(tags, translation.Lang)
 			} else {
