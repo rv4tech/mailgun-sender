@@ -21,9 +21,10 @@ type MailGunParams struct {
 func SendMailGunMessageV3(domain, apiKey string, params *MailGunParams) (string, string, error) {
 	mg := mailgun.NewMailgun(domain, apiKey)
 	message := mg.NewMessage(
-		params.From,
+		fmt.Sprintf("Test user <%s>", params.From),
 		params.Subject,
 		params.Text,
+		params.To,
 	)
 	for _, tag := range params.Tags {
 		err := message.AddTag(tag)
@@ -35,7 +36,6 @@ func SendMailGunMessageV3(domain, apiKey string, params *MailGunParams) (string,
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
-	// Leaving "send" here to test out funcionality of mailgun module.
 	responseMessage, id, err := mg.Send(ctx, message)
 	return responseMessage, id, err
 }

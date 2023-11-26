@@ -37,8 +37,6 @@ func main() {
 	var fileData [][]string = io.ReadCsvFile(fileName)
 	var clients []*Client = CreateClientsSlice(fileData)
 
-	// Initialize slice that will containt data about messages sent.
-	var batchSendStatData []*database.SendStat
 	for _, client := range clients {
 		// Get related translation.
 		translation, err := database.GetTranslationByCampaignIDAndLanguage(db, campaign.ID, client.Language)
@@ -75,22 +73,30 @@ func main() {
 			ExtID:      client.ExternalID,
 			Email:      client.Email,
 		}
-		if responseError != nil {
-			stat.ErrorMsg = fmt.Sprintf("%s", responseError)
-			stat.Success = false
+		if stat.Exists(db) {
+			stat.ErrorMsg = fmt.Sprintf("already sent %v", stat.ID)
 		} else {
-			stat.ErrorMsg = ""
-			stat.Success = true
+			if responseError != nil {
+				stat.ErrorMsg = fmt.Sprintf("%s", responseError)
+				stat.Success = false
+			} else {
+				stat.ErrorMsg = ""
+				stat.Success = true
+			}
 		}
-		batchSendStatData = append(batchSendStatData, stat)
+		db.Create(&stat)
+
 		// Prints for testing purposes.
 		fmt.Printf("Sending message to <%s %s>\n", client.Name, client.Email)
+		fmt.Println("PARAMS:")
+		fmt.Printf("From: %s\n", paramInstance.From)
+		fmt.Printf("To: %s\n", paramInstance.To)
+		fmt.Printf("Subject: %s\n", paramInstance.Subject)
+		fmt.Printf("Text: %s\n", paramInstance.Text)
+		fmt.Printf("Error: %s\n\n", stat.ErrorMsg)
 		fmt.Println("MAILGUN RESPONSE")
 		fmt.Printf("Response message: %s\n", responseMessage)
 		fmt.Printf("Response id: %s\n", responseID)
 		fmt.Printf("Response error: %s\n\n", responseError)
 	}
-
-	// Create entries as batch.
-	db.Create(&batchSendStatData)
 }

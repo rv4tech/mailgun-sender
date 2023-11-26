@@ -24,7 +24,15 @@ func GetTranslationByCampaignIDAndLanguage(db *gorm.DB, campID uint, clientLangu
 }
 
 // Batch creation of send stat entity.
-func CreateBatchSendStatRecord(db *gorm.DB, params []*SendStat) error {
-	query := db.Create(&params)
+func CreateSendStatRecord(db *gorm.DB, param *SendStat) error {
+	query := db.Create(&param)
 	return query.Error
+}
+
+func (s *SendStat) Exists(db *gorm.DB) bool {
+	query := db.
+		Where("email = ?", s.Email).
+		Where("campaign_id = ?", s.CampaignID).
+		Find(&s)
+	return query.RowsAffected > 0
 }
