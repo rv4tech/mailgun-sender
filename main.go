@@ -67,14 +67,22 @@ func main() {
 		}
 		responseMessage, responseID, responseError := sender.SendMailGunMessageV3(domain, apiKey, &paramInstance)
 		// Prepare data to fill send stats table.
-		stat := database.SendStat{
+		stat := &database.SendStat{
 			CampaignID: campaign.ID,
 			Lang:       language,
 			ExtID:      client.ExternalID,
 			Email:      client.Email,
 		}
-		if stat.Exists(db) {
-			stat.ErrorMsg = fmt.Sprintf("already sent %v", stat.ID)
+		if db.First(&stat).RowsAffected > 0 {
+			stat := database.SendStat{
+				CampaignID: campaign.ID,
+				Lang:       language,
+				ExtID:      client.ExternalID,
+				Email:      client.Email,
+				ErrorMsg:   fmt.Sprintf("already sent %v", stat.ID),
+			}
+			db.Create(&stat)
+			continue
 		} else {
 			if responseError != nil {
 				stat.ErrorMsg = fmt.Sprintf("%s", responseError)
