@@ -23,7 +23,7 @@ type Translation struct {
 
 // Struct representation for SendStat table. Gorm alias: send_stats.
 type SendStat struct {
-	gorm.Model
+	ID         uint  `gorm:"primaryKey"`
 	Ts         int64 `gorm:"autoCreateTime"`
 	CampaignID uint
 	Lang       string

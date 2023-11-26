@@ -67,7 +67,7 @@ func main() {
 		}
 		responseMessage, responseID, responseError := sender.SendMailGunMessageV3(domain, apiKey, &paramInstance)
 		// Prepare data to fill send stats table.
-		stat := &database.SendStat{
+		stat := database.SendStat{
 			CampaignID: campaign.ID,
 			Lang:       language,
 			ExtID:      client.ExternalID,

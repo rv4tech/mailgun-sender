@@ -21,7 +21,7 @@ type MailGunParams struct {
 func SendMailGunMessageV3(domain, apiKey string, params *MailGunParams) (string, string, error) {
 	mg := mailgun.NewMailgun(domain, apiKey)
 	message := mg.NewMessage(
-		fmt.Sprintf("Test user <%s>", params.From),
+		params.From,
 		params.Subject,
 		params.Text,
 		params.To,
