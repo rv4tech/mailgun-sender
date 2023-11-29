@@ -13,7 +13,6 @@ func ReadCsvFile(filename string) [][]string {
 		log.Fatalf("Could not read file %s, [%s]\n", filename, err)
 	}
 	defer file.Close()
-
 	csvReader := csv.NewReader(file)
 	records, _ := csvReader.ReadAll()
 	fileLength := len(records)

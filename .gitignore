@@ -2,3 +2,7 @@
 *.db
 rv4-request
 *.csv
+*.txt
+.vscode
+*.sql
+*.log

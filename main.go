@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-	cmdarguments "rv4-request/cmd_arguments"
+	cmd "rv4-request/cmd_arguments"
 	"rv4-request/database"
 	"rv4-request/io"
 	"rv4-request/sender"
@@ -13,98 +13,85 @@ import (
 	"gorm.io/gorm"
 )
 
-func main() {
-	// Get dotenv variables from .env.
+func init() {
+	// Get dotenv variables from .env file.
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-
+}
+func main() {
+	var db *gorm.DB = database.InitDataBase("test.db")
 	var domain string = os.Getenv("DOMAIN")
 	var apiKey string = os.Getenv("APIKEY")
-	// Initialize database from separate function.
-	var db *gorm.DB = database.InitDataBase("")
-
 	// Get cmd arguments from -ml and -camp commands.
-	var fileName, campaignName string = cmdarguments.ParseArguments()
-
+	var fileName, campaignName string = cmd.ParseArguments()
 	// Get initial database data based on passed cmd arguments.
-	campaign, err := database.GetCampaignByName(db, campaignName)
-	if err != nil {
-		log.Fatal(err)
+	var campaign database.Campaign
+	if err := db.Where("name = ?", campaignName).First(&campaign).Error; err != nil {
+		log.Fatalln("Error querying for campaign", err)
 	}
 
-	var fileData [][]string = io.ReadCsvFile(fileName)
-	var clients []*Client = CreateClientsSlice(fileData)
+	// Structured slice of clients read from csv file.
+	clients := CreateClientsSlice(io.ReadCsvFile(fileName))
 
 	for _, client := range clients {
-		// Get related translation.
-		translation, err := database.GetTranslationByCampaignIDAndLanguage(db, campaign.ID, client.Language)
-		if err != nil {
-			log.Fatal(err)
-		}
-		// Initialize empty slice with tags.
-		var tags []string
-		// Initialize empty string with lanuage.
-		var language string
-		// Add tag as per campaign table.
-		tags = append(tags, campaign.MgTemplate)
-		// We need to check if translations table related to the campaign contains lanuage string.
-		// If not, we substitute it with default language from campaigns table.
-		if translation.Lang == "" {
-			language = campaign.DefaultLang
-		} else {
-			language = client.Language
-		}
-		tags = append(tags, language)
-		// Instanciate parameters to fill mailgun request.
-		paramInstance := sender.MailGunParams{
-			From:    translation.From,
-			Subject: translation.Subject,
-			Text:    "test",
-			Tags:    tags,
-			To:      client.Email,
-		}
-		responseMessage, responseID, responseError := sender.SendMailGunMessageV3(domain, apiKey, &paramInstance)
-		// Prepare data to fill send stats table.
-		stat := &database.SendStat{
-			CampaignID: campaign.ID,
-			Lang:       language,
-			ExtID:      client.ExternalID,
-			Email:      client.Email,
-		}
-		if db.First(&stat).RowsAffected > 0 {
-			stat := database.SendStat{
-				CampaignID: campaign.ID,
-				Lang:       language,
-				ExtID:      client.ExternalID,
-				Email:      client.Email,
-				ErrorMsg:   fmt.Sprintf("already sent %v", stat.ID),
-			}
-			db.Create(&stat)
-			continue
-		} else {
-			if responseError != nil {
-				stat.ErrorMsg = fmt.Sprintf("%s", responseError)
-				stat.Success = false
-			} else {
-				stat.ErrorMsg = ""
-				stat.Success = true
-			}
-		}
-		db.Create(&stat)
+		// Payload for MailGun message sending function.
+		var payload sender.MailGunPayload
+		// Struct to enscapsulate data for 'send_stats' table.
+		var stats database.SendStat
 
-		// Prints for testing purposes.
-		fmt.Printf("Sending message to <%s %s>\n", client.Name, client.Email)
-		fmt.Println("PARAMS:")
-		fmt.Printf("From: %s\n", paramInstance.From)
-		fmt.Printf("To: %s\n", paramInstance.To)
-		fmt.Printf("Subject: %s\n", paramInstance.Subject)
-		fmt.Printf("Text: %s\n", paramInstance.Text)
-		fmt.Printf("Error: %s\n\n", stat.ErrorMsg)
-		fmt.Println("MAILGUN RESPONSE")
-		fmt.Printf("Response message: %s\n", responseMessage)
-		fmt.Printf("Response id: %s\n", responseID)
-		fmt.Printf("Response error: %s\n\n", responseError)
+		// Check if row with requested 'camp_id' and 'lang' exists.
+		// If not - we use campaign's default language.
+		translation, translationDoesNotExist := database.TranslationDoesNotExist(db, campaign.ID, client.Language)
+		if translationDoesNotExist {
+			// Dereferrence new db entity for 'translation' struct.
+			db.Where("camp_id = ? AND lang = ?", campaign.ID, campaign.DefaultLanguage).First(&translation)
+		}
+
+		// Create payload to fill MailGun send message function.
+		payload.From = translation.From
+		payload.Subject = translation.Subject
+		payload.Text = fmt.Sprintf("This message is supposed to be in <%s> language", translation.Language)
+		payload.To = client.Email
+		payload.Tags = append(payload.Tags, translation.Language, campaign.MailgunTemplate)
+		payload.TemplateVersion = translation.Language
+
+		// Create some of statistics variables.
+		// We do not initialize 'ErrorMessage' and 'Success' until after we send message.
+		stats.CampaignID = campaign.ID
+		stats.Email = client.Email
+		stats.ExternalID = client.ExternalID
+		stats.Language = translation.Language
+
+		// Check if message was sent already by three parameters.
+		// First is 'camp_id'.
+		// Second is 'email'.
+		// Third is 'success'. Must be true (1).
+		// Even if 'camp_id' and 'email' already exists, but success was false (0), we send the message.
+		statExists, statID := database.StatExists(db, &stats)
+		if statExists {
+			WriteLog("ERROR", fmt.Sprintf("Message for <%s> was not sent. Entry with this statistic already exists with id %v", client.Email, statID))
+			stats.ErrorMessage = fmt.Sprintf("already sent <%v>", statID)
+			stats.Success = false
+			db.Create(&stats)
+			continue
+		}
+
+		// MailGun response enteties.
+		// responseMessage contains basic info about request. If message was sent successfully, it return "Queued. Thank you."
+		// responseID contains MailGun message ID.
+		// responseError contains error message if any occurs.
+		responseMessage, responseID, responseError := sender.SendMailGunMessageV4(domain, apiKey, &payload)
+		if responseError != nil {
+			WriteLog("ERROR", fmt.Sprintf("Message for <%s> was not sent. MailGun responded with error: %s", client.Email, responseError))
+			stats.ErrorMessage = fmt.Sprint(responseError)
+			stats.Success = false
+		} else {
+			WriteLog("INFO", fmt.Sprintf("Message for <%s> was successfully sent. MG message: %s MG id: %s", client.Email, responseMessage, responseID))
+			stats.ErrorMessage = ""
+			stats.Success = true
+		}
+		db.Create(&stats)
 	}
 }

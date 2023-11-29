@@ -6,6 +6,7 @@ import (
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // Fallback filename for database.
@@ -20,7 +21,9 @@ func InitDataBase(databaseName string) *gorm.DB {
 	if databaseName == "" {
 		databaseName = defaultDatabaseName
 	}
-	database, err := gorm.Open(sqlite.Open(databaseName), &gorm.Config{})
+	database, err := gorm.Open(sqlite.Open(databaseName), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	if err != nil {
 		log.Fatalf("Could not connet to database %s\nError: %s\n", databaseName, err)
 	}
@@ -33,7 +36,7 @@ func InitDataBase(databaseName string) *gorm.DB {
 // Apply schemas from models.go file.
 // Schemas structs are hardcoded inside of a function.
 // Schemas are Campaign, Translation, SendStat
-// GORM will not apply schemas of they already filled in the database.
+// GORM will not apply schemas if they already injected.
 func ApplySchemas(db *gorm.DB) {
 	db.AutoMigrate(&Campaign{})
 	db.AutoMigrate(&Translation{})
