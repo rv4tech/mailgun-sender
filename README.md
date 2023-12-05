@@ -1,1 +1,5 @@
-# mailgun-sender
+.env variables:
+
+DOMAIN=
+
+APIKEY=

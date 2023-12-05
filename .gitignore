@@ -19,3 +19,11 @@
 
 # Go workspace file
 go.work
+.env
+*.db
+*.csv
+*.txt
+.vscode
+*.sql
+*.log
+rv4-request
