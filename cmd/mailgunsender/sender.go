@@ -1,4 +1,4 @@
-package sender
+package main
 
 import (
 	"context"
@@ -14,19 +14,25 @@ type MailGunPayload struct {
 	Subject         string
 	Text            string
 	TemplateVersion string // t:version
+	TemplateName    string
 	To              string
 	Tags            []string // o:tag
 }
 
 // Sends message using Mailgun API to a SINGLE recipient.
 func SendMailGunMessageV4(domain, apiKey string, payload *MailGunPayload) (string, string, error) {
-	mailgun := mailgun.NewMailgun(domain, apiKey)
+	mailgun, err := mailgun.NewMailgunFromEnv()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Empty messages return "message not valid" from MailGun.
 	if payload.Text == "" {
 		payload.Text = " "
 	}
 	message := mailgun.NewMessage(payload.From, payload.Subject, payload.Text, payload.To)
 	// Set correct template version (language).
+	message.SetTemplate(payload.TemplateName)
 	message.SetTemplateVersion(payload.TemplateVersion)
 	// Add tags.
 	for _, tag := range payload.Tags {

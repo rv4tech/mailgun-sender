@@ -6,3 +6,7 @@ rv4-request
 .vscode
 *.sql
 *.log
+
+.dump
+go.sum
+bin/
